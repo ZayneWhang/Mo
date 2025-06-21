@@ -1,0 +1,156 @@
+<details>
+<summary>欢迎来到你的随心记 ▼</summary>
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+  <title>墨语轻吟</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    textarea, input, select, button {
+      font-size: 16px;
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .record {
+      margin-top: 30px;
+    }
+    .entry {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: gray;
+    }
+    .buttons {
+      margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      textarea, input, select, button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>墨语轻吟</h1>
+
+  <textarea id="textInput" placeholder="在此输入文字..."></textarea><br>
+
+  <label for="categorySelect">分类：</label>
+  <select id="categorySelect">
+    <option value="日记">日记</option>
+    <option value="灵感">灵感</option>
+    <option value="工作">工作</option>
+    <option value="其他">其他</option>
+  </select>
+
+  <button onclick="saveText()">收录文字</button>
+
+  <input type="text" id="searchInput" placeholder="🔍 输入关键字搜寻..." oninput="renderEntries()">
+
+  <div class="buttons">
+    <button onclick="exportText('txt')">导出为TXT</button>
+    <button onclick="exportText('json')">导出为JSON</button>
+    <button onclick="clearAll()">🗑️ 清空全部</button>
+  </div>
+
+  <div class="record" id="recordContainer">
+    <h2>📚 已收录文字：</h2>
+  </div>
+
+  <script>
+    let entries = JSON.parse(localStorage.getItem("textEntries") || "[]");
+    const container = document.getElementById("recordContainer");
+
+    function saveText() {
+      const text = document.getElementById('textInput').value.trim();
+      const category = document.getElementById('categorySelect').value;
+      if (text === '') return alert("请输入内容！");
+      const timestamp = new Date().toLocaleString();
+      const entry = { id: Date.now(), text, category, timestamp };
+      entries.push(entry);
+      localStorage.setItem("textEntries", JSON.stringify(entries));
+      renderEntries();
+      document.getElementById('textInput').value = '';
+    }
+
+    function renderEntries() {
+      container.innerHTML = '<h2>📚 已收录文字：</h2>';
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+      entries.filter(e => e.text.toLowerCase().includes(keyword)).forEach(addEntryToDOM);
+    }
+
+    function addEntryToDOM(entry) {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = `
+        <strong>【${entry.category}】</strong><br>
+        <div contenteditable="true" onblur="updateText(${entry.id}, this.innerText)">
+          ${entry.text}
+        </div>
+        <div class="timestamp">🕒 ${entry.timestamp}</div>
+        <button onclick="deleteEntry(${entry.id})">删除</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function updateText(id, newText) {
+      const index = entries.findIndex(e => e.id === id);
+      if (index !== -1) {
+        entries[index].text = newText.trim();
+        localStorage.setItem("textEntries", JSON.stringify(entries));
+      }
+    }
+
+    function deleteEntry(id) {
+      if (!confirm("确定要删除这条记录吗？")) return;
+      entries = entries.filter(e => e.id !== id);
+      localStorage.setItem("textEntries", JSON.stringify(entries));
+      renderEntries();
+    }
+
+    function clearAll() {
+      if (!confirm("确定要清空全部记录吗？")) return;
+      entries = [];
+      localStorage.removeItem("textEntries");
+      renderEntries();
+    }
+
+    function exportText(type) {
+      if (entries.length === 0) return alert("没有内容可导出！");
+      let content = '';
+      let filename = 'text_entries';
+      if (type === 'txt') {
+        content = entries.map(e => `【${e.category}】 ${e.text}\n🕒 ${e.timestamp}`).join('\n\n');
+        filename += '.txt';
+      } else {
+        content = JSON.stringify(entries, null, 2);
+        filename += '.json';
+      }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    renderEntries();
+  </script>
+
+</body>
+</html>
+</details>
